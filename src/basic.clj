@@ -999,9 +999,9 @@
 ; [((10 (PRINT X))) [10 1] [] [] [] 0 {X$ "HOLA MUNDO"}]
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn ejecutar-asignacion [sentencia amb]
-  ;TERMINAR con evaluar-rpm y patio de maniobras
   (def expresion (preprocesar-expresion (nthrest sentencia 2) amb))
-  (assoc (last amb) (first sentencia) (last expresion))
+  (def resultado (calcular-expresion expresion amb))
+  (assoc amb 6 (assoc (last amb) (first sentencia) (eliminar-cero-decimal resultado)))
   )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1115,9 +1115,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn eliminar-cero-decimal [n]
   (cond
-    (= clojure.lang.Symbol (class n)) (str n)
     (some? (re-matches #"[0-9]*.0" (str n))) (int n)
-    :else (double n)
+    (= java.lang.Double (class n)) (double n)
+    :else n
     )
   )
 
