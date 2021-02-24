@@ -687,7 +687,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn anular-invalido [x]
   (cond
-    (contains? #{"^" '& '! '° '¬ '¿ '¡ "~"} x) nil
+    (contains? #{'& '! '° '¬ '¿ '¡ "~"} x) nil
     :else x
     )
   )
@@ -797,7 +797,13 @@
 ; false
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn variable-float? [x]
-  (some? (re-matches #"[A-Z]*" (str x)))
+  (cond
+    (palabra-reservada? x) false
+    (variable-string? x) false
+    (variable-integer? x) false
+    (some? (re-matches #"[0-9]*" (str x))) false
+    :else true
+    )
   )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -949,7 +955,34 @@
 ; user=> (extraer-data (list '(10 (PRINT X) (REM ESTE NO) (DATA 30)) '(20 (DATA HOLA)) (list 100 (list 'DATA 'MUNDO (symbol ",") 10 (symbol ",") 20))))
 ; ("HOLA" "MUNDO" 10 20)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn convertir-strings [elemento]
+  (cond
+    (some? (re-matches #"[0-9]*" (str elemento))) elemento
+    :else (str elemento)
+    )
+  )
+
+(defn extraer-valores [lista]
+  (cond
+    (empty? lista) nil
+    :else (if (clojure.string/includes? (str (nthrest lista 1)) "DATA") (map convertir-strings (filter #(and (not= (str %) "DATA") (not= (str %) ",")) (first (nthrest lista 1)))) nil)
+    )
+  )
+
+(defn extraer-data-elemento [lista]
+  (cond
+    (empty? lista) nil
+    (clojure.string/includes? (str (first lista)) "REM") (extraer-data-elemento (nthrest lista 1))
+    :else (concat (extraer-valores (first lista)) (extraer-data-elemento (nthrest lista 1))
+    )
+  )
+  )
+
 (defn extraer-data [prg]
+  (cond
+    (empty? (first prg)) ()
+    :else (extraer-data-elemento prg)
+    )
   )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -966,6 +999,7 @@
 ; [((10 (PRINT X))) [10 1] [] [] [] 0 {X$ "HOLA MUNDO"}]
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn ejecutar-asignacion [sentencia amb]
+  ;TERMINAR con evaluar-rpm y patio de maniobras
   (def expresion (preprocesar-expresion (nthrest sentencia 2) amb))
   (assoc (last amb) (first sentencia) (last expresion))
   )
@@ -989,7 +1023,6 @@
     )
   )
 (defn preprocesar-expresion [expr amb]
-  (println (class amb))
   (map (partial reemplazar-expresion (last amb)) expr)
   )
 
@@ -1007,6 +1040,7 @@
 ; (MID3$ ( 1 , -u 2 + K , 3 ))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn desambiguar [expr]
+  (desambiguar-mid (desambiguar-mas-menos expr))
   )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1026,6 +1060,7 @@
 (defn precedencia [token]
   ;agregar precedencia de los numeros, es mayor que las funciones
   (cond
+    (= "," (str token)) 0
     (= "OR" (str token)) 1
     (= "AND" (str token)) 2
     (= "NOT" (str token)) 3
@@ -1034,6 +1069,7 @@
     (contains? #{"*" "/"} (str token)) 6
     (= "-u" (str token)) 7
     (= "^" (str token)) 8
+    (contains? #{"(" ")"} (str token)) nil
     :else 9
     )
   )
@@ -1053,6 +1089,16 @@
 ; 3
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn aridad [token]
+  (cond
+    (some? (re-matches #"[0-9]*" (str token))) 0            ;aridad de las constantes numericas
+    (= "-u" (str token)) 1
+    (operador? token) 2
+    (= "THEN" (str token)) 0
+    (= "MID$" (str token)) 2
+    (= "MID3$" (str token)) 3
+    (contains? #{"ATN" "INT" "SIN" "LEN" "ASC" "CHR$" "STR$"} (str token)) 1
+    :else 0
+    )
   )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
