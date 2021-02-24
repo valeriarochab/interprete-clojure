@@ -709,8 +709,20 @@
 ; user=> (cargar-linea '(15 (X = X - 1)) ['((10 (PRINT X)) (15 (X = X + 1)) (20 (X = 100))) [:ejecucion-inmediata 0] [] [] [] 0 {}])
 ; [((10 (PRINT X)) (15 (X = X - 1)) (20 (X = 100))) [:ejecucion-inmediata 0] [] [] [] 0 {}]
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn cargar-linea [linea amb]
+(defn generar-linea [linea lista]
+  (cond
+    (= (first linea) (ffirst lista)) (cons linea (nthrest lista 1))
+    (< (first linea) (ffirst lista)) (cons linea lista)
+    (empty? (fnext lista)) (cons (first lista) (list linea))
+    :else (cons (first lista) (generar-linea linea (nthrest lista 1)))
+    )
+  )
 
+(defn cargar-linea [linea amb]
+  (cond
+    (= (nth amb 0) '()) (assoc amb 0 (list linea))
+    :else (assoc amb 0 (generar-linea linea (nth amb 0)))
+    )
   )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -769,8 +781,8 @@
 
 (defn dar-error [cod prog-ptrs]
   (cond
-    (= cod 16) (construir-mensaje prog-ptrs "?SYNTAX ERROR")
-    :else (construir-mensaje prog-ptrs "?ERROR DISK FULL")
+    (= java.lang.Long (class cod)) (construir-mensaje prog-ptrs (buscar-mensaje cod))
+    :else (construir-mensaje prog-ptrs cod)
     )
   )
 
@@ -813,7 +825,7 @@
 ; false
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn variable-string? [x]
-  (some? (re-matches #"[A-Z]*[$]" (str x)))
+  (if (palabra-reservada? x) (false) (some? (re-matches #"[A-Z]*[$]" (str x))))
   )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -874,9 +886,30 @@
 ; user=> (buscar-lineas-restantes [(list '(10 (PRINT X) (PRINT Y)) '(15 (X = X + 1)) (list 20 (list 'NEXT 'I (symbol ",") 'J))) [25 0] [] [] [] 0 {}])
 ; nil
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn expandir [act prg]
+  (if (clojure.string/includes? (str (first prg)) "NEXT") (nthrest (expandir-nexts (nthrest (first prg) 1)) (- (count (expandir-nexts (nthrest (first prg) 1))) (second act)))
+                                                          (nthrest (first prg) (- (count (first prg)) (second act)))
+                                                        )
+  )
+
+(defn buscar-lineas-restantes-aux [act prg]
+    (cond
+      (= (first act) (ffirst prg)) (if (< (second act) (count (first prg))) (cons (cons (first act) (expandir act prg)) (nthrest prg 1))
+                                     (cons (cons (first act) (nthrest (first prg) 1)) (nthrest prg 1))
+                                     )
+      (empty? (fnext prg)) nil
+      :else (buscar-lineas-restantes-aux act (nthrest prg 1))
+    )
+  )
+
 (defn buscar-lineas-restantes
   ([amb] (buscar-lineas-restantes (amb 1) (amb 0)))
   ([act prg]
+    (cond
+      (= prg list())  nil
+      (= (str (nth act 0)) ":ejecucion-inmediata") nil
+      :else (buscar-lineas-restantes-aux act prg)
+      )
    )
   )
 
@@ -891,7 +924,20 @@
 ; user=> (continuar-linea [(list '(10 (PRINT X)) '(15 (GOSUB 100) (X = X + 1)) (list 20 (list 'NEXT 'I (symbol ",") 'J))) [20 3] [[15 2]] [] [] 0 {}])
 ; [:omitir-restante [((10 (PRINT X)) (15 (GOSUB 100) (X = X + 1)) (20 (NEXT I , J))) [15 1] [] [] [] 0 {}]]
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn retornar-without-gosub [amb]
+  (println (str "?RETURN WITHOUT GOSUB ERROR IN " (first (get amb 1))))
+  (conj [nil] amb)
+  )
+
+(defn continuar-linea-aux [amb]
+  (conj [:omitir-restante] (assoc (assoc amb 1 [(ffirst (get amb 2)) (- (second (first (get amb 2))) 1)]) 2 []))
+  )
+
 (defn continuar-linea [amb]
+  (cond
+    (empty? (get amb 2)) (retornar-without-gosub amb)
+    :else (continuar-linea-aux amb)
+    )
   )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -920,6 +966,8 @@
 ; [((10 (PRINT X))) [10 1] [] [] [] 0 {X$ "HOLA MUNDO"}]
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn ejecutar-asignacion [sentencia amb]
+  (def expresion (preprocesar-expresion (nthrest sentencia 2) amb))
+  (assoc (last amb) (first sentencia) (last expresion))
   )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -931,7 +979,18 @@
 ; user=> (preprocesar-expresion '(X + . / Y% * Z) ['((10 (PRINT X))) [10 1] [] [] [] 0 '{X 5 Y% 2}])
 ; (5 + 0 / 2 * 0)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defn reemplazar-expresion [amb elemento]
+  (cond
+    (variable-string? elemento) (get amb elemento "")
+    (= (str elemento) ".") 0
+    (operador? elemento) elemento
+    (= clojure.lang.Symbol (class elemento)) (get amb elemento 0)
+    :else elemento
+    )
+  )
 (defn preprocesar-expresion [expr amb]
+  (println (class amb))
+  (map (partial reemplazar-expresion (last amb)) expr)
   )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
