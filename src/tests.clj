@@ -32,6 +32,7 @@
 (deftest test-operador?
   (is (= true (operador? '+)))
   (is (= false (operador? (symbol "%"))))
+  (is (= false (operador? (symbol ""))))
   )
 
 (deftest test-anular-invalidos
@@ -124,6 +125,7 @@
   (is (= 2 (precedencia 'AND)))
   (is (= 6 (precedencia '*)))
   (is (= 7 (precedencia '-u)))
+  (is (= 8 (precedencia (symbol "^"))))
   (is (= 9 (precedencia 'MID$)))
   )
 
@@ -133,6 +135,7 @@
   (is (= 2 (aridad '*)))
   (is (= 2 (aridad 'MID$)))
   (is (= 3 (aridad 'MID3$)))
+  (is (= 2 (aridad (symbol "^"))))
   )
 
 (deftest test-eliminar-cero-decimal
