@@ -16,6 +16,10 @@
 (deftest test-expandir-next
   (is (= '((PRINT 1) (NEXT A) (NEXT B)) (expandir-nexts (list '(PRINT 1) (list 'NEXT 'A (symbol ",") 'B)))))
   (is (= '((NEXT A) (NEXT B)) (expandir-nexts (list (list 'NEXT 'A (symbol ",") 'B)))))
+  (is (= (list (list 'FOR 'J '= 1 'TO 'L) (list 'READ 'S$) (list 'NEXT 'J)) (expandir-nexts (list (list 'FOR 'J '= 1 'TO 'L) (list 'READ 'S$) (list 'NEXT 'J)))))
+  (is (= nil (expandir-nexts nil)))
+  (is (= '((NEXT A)) (expandir-nexts (list (list 'NEXT 'A)))))
+  (is (= '((NEXT)) (expandir-nexts '((NEXT)))))
   )
 
 (deftest test-dar-error
@@ -39,18 +43,28 @@
   (is (= false (variable-float? 'X%)))
   (is (= false (variable-float? 'X$)))
   (is (= false (variable-float? 7)))
+  (is (= false (variable-float? 'LEN)))
+  (is (= false (variable-float? 'SIN)))
+  (is (= false (variable-float? (symbol ";"))))
+  (is (= false (variable-float? (symbol "("))))
+  (is (= false (variable-float? (symbol ")"))))
+  (is (= false (variable-float? nil)))
   )
 
 (deftest test-variable-integer?
   (is (= true (variable-integer? 'X%)))
   (is (= false (variable-integer? 'X)))
   (is (= false (variable-integer? 'X$)))
+  (is (= false (variable-integer? (symbol ";"))))
   )
 
 (deftest test-variable-string?
   (is (= true (variable-string? 'X$)))
   (is (= false (variable-string? 'X)))
   (is (= false (variable-string? 'X%)))
+  (is (= false (variable-string? (symbol ";"))))
+  (is (= false (variable-string? nil)))
+  (is (= false (variable-string? 'LEN)))
   )
 
 (deftest test-contar-sentencias
@@ -139,5 +153,13 @@
   (is (= "-1.5" (eliminar-cero-entero -1.5)))
   (is (= ".5" (eliminar-cero-entero 0.5)))
   (is (= "-.5" (eliminar-cero-entero -0.5)))
+  (is (= "HELLO" (eliminar-cero-entero "HELLO")))
+  )
+
+(deftest test-shunting-yard
+  (is (= '("123" LEN) (shunting-yard '(LEN "123"))))
+  (is (= '(1 2 +) (shunting-yard '(1 + 2))))
+  (is (= '(1 + 2 3 +) (shunting-yard '((1 + 2) + 3))))
+  (is (= '(1 2 + 3 +) (shunting-yard (list (symbol "(") 1 '+ 2 (symbol ")") '+ 3))))
   )
 (run-tests)
