@@ -125,21 +125,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn evaluar-linea
   ([sentencias amb]
-   ;(println "evaluar-linea 2 args")
-   ;(println sentencias)
    (let [sentencias-con-nexts-expandidos (expandir-nexts sentencias)]
      (evaluar-linea sentencias-con-nexts-expandidos sentencias-con-nexts-expandidos amb)))
   ([linea sentencias amb]
-   ;(println "evaluar-linea 3 args")
-   ;(println linea)
-   ;(println sentencias)
-   ;(println amb)
    (if (empty? sentencias)
      [:sin-errores amb]
      (let [sentencia (anular-invalidos (first sentencias)), par-resul (evaluar sentencia amb)]
-       ;(println "post anular-invalidos")
-       ;(println sentencia)
-       ;(println par-resul)
        (if (or (nil? (first par-resul)) (contains? #{:omitir-restante, :error-parcial, :for-inconcluso} (first par-resul)))
          (if (and (= (first (amb 1)) :ejecucion-inmediata) (= (first par-resul) :for-inconcluso))
            (recur linea (take-last (second (second (second par-resul))) linea) (second par-resul))
@@ -205,10 +196,6 @@
      (empty? param-de-read) (do (dar-error 16 (amb 1)) [nil amb]) ; Syntax error
      :else (leer-data param-de-read (drop (amb 5) (amb 4)) amb)))
   ([variables entradas amb]
-   ;(println "leer-data con 3 variables:")
-   ;(println variables)
-   ;(println entradas)
-   ;(println amb)
    (cond
      (empty? variables) [:sin-errores amb]
      (empty? entradas) (do (dar-error 42 (amb 1)) [:error-parcial amb]) ; Out of data error
@@ -372,9 +359,6 @@
 ; 7
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn calcular-expresion [expr amb]
-  ;(println "calcular expresion")
-  ;(println "expresion: " expr)
-  ;(println "ambiente: " amb)
   (calcular-rpn (shunting-yard (desambiguar (preprocesar-expresion expr amb))) (amb 1))
   )
 
@@ -431,14 +415,10 @@
 ; (1 2 +)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn shunting-yard [tokens]
-  ;(println "shunting-yard: " tokens)
   (remove #(= % (symbol ","))
           (flatten
             (reduce
               (fn [[rpn pila] token]
-                ; (println "rpn: " rpn)
-                ;(println "pila: " pila)
-                ;(println "token: " token)
                 (let [op-mas? #(and (some? (precedencia %)) (>= (precedencia %) (precedencia token)))
                       no-abre-paren? #(not= (str %) "(")]
                   (cond
@@ -456,9 +436,6 @@
 ; linea indicada
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn calcular-rpn [tokens nro-linea]
-  ;(println "calcular-rpn")
-  ;(println "tokens: " tokens)
-  ;(println "nro-linea: " nro-linea)
   (try
     (let [resu-redu
           (reduce
@@ -493,12 +470,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn imprimir
   ([v]
-   ;(println "imprimir con 1 arg")
-   ;(println v)
    (let [expresiones (v 0), amb (v 1)]
-     ;(println "imprimir post let")
-     ;(println expresiones)
-     ;(println amb)
      (cond
        (empty? expresiones) (do (prn) (flush) :sin-errores)
        (and (empty? (next expresiones)) (= (first expresiones) (list (symbol ";")))) (do (pr) (flush) :sin-errores)
@@ -510,9 +482,6 @@
                  resu
                  (do (print resu) (flush) (recur [(next expresiones) amb])))))))
   ([lista-expr amb]
-   ;(println "imprimir con 2 args")
-   ;(println lista-expr)
-   ;(println amb)
    (let [nueva (cons (conj [] (first lista-expr)) (rest lista-expr)),
          variable? #(or (variable-integer? %) (variable-float? %) (variable-string? %)),
          funcion? #(and (> (aridad %) 0) (not (operador? %))),
@@ -555,13 +524,6 @@
 ; actualizado
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn evaluar [sentencia amb]
-  ;(println "EVALUAR")
-  ;(println "sentencia: " sentencia)
-  ;(println "amb: " amb)
-  ;(println "first sentencia: " (first sentencia))
-  ;(println "second sentencia: " (second sentencia))
-  ;(println "class second sentencia: " (class (second sentencia)))
-  ;(println "next sentencia: " (next sentencia))
   (if (or (contains? (set sentencia) nil) (and (palabra-reservada? (first sentencia)) (= (second sentencia) '=)))
     (do (dar-error 16 (amb 1)) [nil amb])                   ; Syntax error
     (case (first sentencia)
@@ -652,7 +614,6 @@
 
       (if (= (second sentencia) '=)
         (let [resu (ejecutar-asignacion sentencia amb)]
-          (println "RESU: " resu)
           (if (nil? resu)
             [nil amb]
             [:sin-errores resu]))
@@ -666,10 +627,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn aplicar
   ([operador operando nro-linea]
-   ;(println "aplicar con un operador:")
-   ;(println "operador: " operador)
-   ;(println "operando: " operando)
-   ;(println "nro-linea: " nro-linea)
    (if (nil? operando)
      (dar-error 16 nro-linea)                               ; Syntax error
      (case operador
@@ -683,15 +640,6 @@
        ASC (int (.charAt (str operando) 0))
        )))                                                  ; Illegal quantity error
   ([operador operando1 operando2 nro-linea]
-   ;(println "aplicar con dos operadores:")
-   ;(println "operador1: " operando1)
-   ;(println "operador2: " operando2)
-   ;(println "operando: " operador)
-   ;(println "nro-linea: " nro-linea)
-   ;(println "class operador: " (class operador))
-   ;(println "class operando1: " (class operando1))
-   ;(println "class operando2: " (class operando2))
-
    (if (or (nil? operando1) (nil? operando2))
      (dar-error 16 nro-linea)                               ; Syntax error
      (if (= operador (symbol "^"))
@@ -767,7 +715,6 @@
 ; (IF X nil * Y < 12 THEN LET nil X = 0)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn anular-invalido [x]
-  ;(println (str "anular invalido aux: " x))
   (cond
     (contains? #{"&" "!" "°" "¬" '¿ "¡" "~"} (str x)) nil
     :else x
@@ -775,8 +722,6 @@
   )
 
 (defn anular-invalidos [sentencia]
-  ;(println "anular-invalidos:")
-  ;(println "sentencia: " sentencia)
   (map anular-invalido sentencia)
   )
 
@@ -820,38 +765,36 @@
 ; user=> (expandir-nexts n)
 ; ((PRINT 1) (NEXT A) (NEXT B))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn next-incorrecto [elemento]
-  (and (not= (second elemento) (symbol ",")) (not= (second elemento) (symbol "NEXT")))
+(defn juntar-next [argumento]
+  (list 'NEXT argumento)
   )
 
-(defn remover-next-vacio [lista]
-  ;(println "remover-next-vacio")
-  (filter next-incorrecto lista)
+(defn juntar-argumentos-next [argumentos]
+  (map juntar-next argumentos)
   )
 
-(defn distl-next [lista]
-  ;(println "distl-next: " lista)
-  (if (= lista '(NEXT)) (list lista) (remover-next-vacio (map list (repeat (count lista) 'NEXT) lista)))
+
+(defn argumentos-next [sentencia]
+  (filter (fn [argumento] (not= argumento (symbol ","))) (rest sentencia))
   )
 
-(defn expandir-elemento [elemento1, elemento2]
-  ;(println "expandir-elemento: ")
-  ;(println "elemento1: " elemento1)
-  ;(println "elemento2: " elemento2)
-  (cond
-    (= (nth elemento2 0) 'NEXT) (concat elemento1 (distl-next elemento2))
-    (empty? elemento1) (conj elemento1 elemento2)
-    :else (concat elemento1 (list elemento2)))
+(defn expandir-elemento [sentencia]
+  (let [argumentos (argumentos-next sentencia)]
+  (if (empty? argumentos) (list 'NEXT) (juntar-argumentos-next argumentos))
+  ))
+
+(defn mappear-next [sentencia]
+  (if (= 'NEXT (first sentencia)) (expandir-elemento sentencia) (list sentencia))
   )
 
 (defn expandir-nexts [n]
-  ;(println "expandir nexts")
-  ;(println n)
   (cond
-    (clojure.string/includes? (str n) "NEXT") (filter #(not= % '()) (reduce expandir-elemento (conj n ())))
-    :else n
+    (= (count (first n)) 1) n
+    (nil? n) nil
+    :else (apply concat (map mappear-next n))
     )
   )
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; dar-error: recibe un error (codigo o mensaje) y el puntero de
@@ -875,7 +818,6 @@
   )
 
 (defn dar-error [cod prog-ptrs]
-  (println "DAR ERROR")
   (cond
     (= java.lang.Long (class cod)) (construir-mensaje prog-ptrs (buscar-mensaje cod))
     :else (construir-mensaje prog-ptrs cod)
@@ -893,8 +835,6 @@
 ; false
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn variable-float? [x]
-  ;(println "variable-float?:")
-  ;(println x)
   (cond
     (palabra-reservada? x) false
     (variable-string? x) false
@@ -917,8 +857,6 @@
 ; false
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn variable-integer? [x]
-  ;(println "variable-integer?:")
-  ;(println x)￼
   (some? (re-matches #"[A-Z]*%" (str x)))
   )
 
@@ -933,8 +871,6 @@
 ; false
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn variable-string? [x]
-  ;(println "variable-string?:" x)
-  ;(println "class variable: " (class x))
   (if (palabra-reservada? x) false (some? (re-matches #"[A-Z]*[$]" (str x))))
   )
 
@@ -996,32 +932,42 @@
 ; user=> (buscar-lineas-restantes [(list '(10 (PRINT X) (PRINT Y)) '(15 (X = X + 1)) (list 20 (list 'NEXT 'I (symbol ",") 'J))) [25 0] [] [] [] 0 {}])
 ; nil
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defn expandir [act prg]
-  (if (clojure.string/includes? (str (first prg)) "NEXT") (nthrest (expandir-nexts (nthrest (first prg) 1)) (- (count (expandir-nexts (nthrest (first prg) 1))) (second act)))
-                                                          (nthrest (first prg) (- (count (first prg)) (second act)))
-                                                          )
+(defn fuera-de-rango? [puntero prg]
+  (= (count (filter (fn [linea] (>= (first linea) puntero)) prg)) 0)
   )
 
-(defn buscar-lineas-restantes-aux [act prg]
+(defn lineas-restantes [puntero prg]
+  (filter (fn [linea] (>= (first linea) puntero)) prg)
+  )
+
+(defn transformar-linea [cantidad linea]
   (cond
-    (= (first act) (ffirst prg)) (if (< (second act) (count (first prg))) (cons (cons (first act) (expandir act prg)) (nthrest prg 1))
-                                                                          (cons (cons (first act) (nthrest (first prg) 1)) (nthrest prg 1))
-                                                                          )
-    (empty? (fnext prg)) nil
-    :else (buscar-lineas-restantes-aux act (nthrest prg 1))
+    (<= cantidad 0) (list (first linea))
+    (>= cantidad (- (count linea) 1)) linea
+    :else (cons (first linea) (take-last cantidad linea))
     )
+  )
+
+(defn truncar-lineas [act prg]
+  (def lista (lineas-restantes (first act) prg))
+  (cons (transformar-linea (second act) (cons (first (first lista)) (expandir-nexts  (rest (first lista))))) (rest lista))
+  )
+
+(defn sin-lineas? [act prg]
+  (or (= ":ejecucion-inmediata" (str (first act))) (empty? prg) (fuera-de-rango? (first act) prg))
   )
 
 (defn buscar-lineas-restantes
   ([amb] (buscar-lineas-restantes (amb 1) (amb 0)))
   ([act prg]
    (cond
-     (= prg list ()) nil
-     (= (str (nth act 0)) ":ejecucion-inmediata") nil
-     :else (buscar-lineas-restantes-aux act prg)
+     (nil? prg) nil
+     (sin-lineas? act prg) nil
+     :else (truncar-lineas act prg)
      )
    )
   )
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; continuar-linea: implementa la sentencia RETURN, retornando una
@@ -1035,7 +981,7 @@
 ; [:omitir-restante [((10 (PRINT X)) (15 (GOSUB 100) (X = X + 1)) (20 (NEXT I , J))) [15 1] [] [] [] 0 {}]]
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn retornar-without-gosub [amb]
-  ;(println (str "?RETURN WITHOUT GOSUB ERROR IN " (first (get amb 1))))
+  (println (str "?RETURN WITHOUT GOSUB ERROR IN " (first (get amb 1))))
   (conj [nil] amb)
   )
 
@@ -1120,13 +1066,8 @@
 ; [((10 (PRINT X))) [10 1] [] [] [] 0 {X$ "HOLA MUNDO"}]
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn ejecutar-asignacion [sentencia amb]
-  ;(println "ejecutar-asignacion")
-  ;(println "sentencia: " sentencia)
-  ;(println "amb: " amb)
   (def expresion (preprocesar-expresion (nthrest sentencia 2) amb))
-  ;(println "fin preprocesar-expresion")
   (def resultado (calcular-expresion expresion amb))
-  ;(println "resultado: " resultado)
   (assoc amb 6 (assoc (last amb) (first sentencia) (eliminar-cero-decimal resultado)))
   )
 
@@ -1140,9 +1081,6 @@
 ; (5 + 0 / 2 * 0)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn reemplazar-expresion [amb elemento]
-  ;(println "reemplazar-expresion:")
-  ;(println "amb: " amb)
-  ;(println "elemento: " elemento)
   (cond
     (palabra-reservada? elemento) elemento
     (contains? #{";" ":" "(" ")" "=" "," "^"} (str elemento)) elemento
@@ -1154,9 +1092,6 @@
     )
   )
 (defn preprocesar-expresion [expr amb]
-  ;(println "preprocesar-expresion")
-  ;(println "expresion: " expr)
-  ;(println "amb: " amb)
   (map (partial reemplazar-expresion (last amb)) expr)
   )
 
@@ -1192,9 +1127,6 @@
 ; 9
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn precedencia [token]
-  ;(println "precedencia: " token)
-  ;(println "class precedencia: " (class token))
-  ;agregar precedencia de los numeros, es mayor que las funciones
   (cond
     (= "," (str token)) 0
     (= "OR" (str token)) 1
@@ -1226,7 +1158,6 @@
 ; 3
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn aridad [token]
-  ;(println "aridad:" token)
   (cond
     (some? (re-matches #"[0-9]*" (str token))) 0            ;aridad de las constantes numericas
     (= "-u" (str token)) 1
@@ -1252,9 +1183,7 @@
 ; A
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn eliminar-cero-decimal [n]
-  ;(println "eliminar-cero-decimal: " n)
   (cond
-    ;(nil? n) nil
     (string? n) n
     (clojure.string/includes? (str n) "/") (float n)
     (some? (re-matches #"[0-9]*.0" (str n))) (int n)
@@ -1287,9 +1216,6 @@
 ; "-.5"
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn eliminar-cero-entero [n]
-  ;(println "eliminar cero entero")
-  ;(println n)
-  ;(println (class n))
   (cond
     (= java.lang.String (class n)) n
     (= nil n) nil

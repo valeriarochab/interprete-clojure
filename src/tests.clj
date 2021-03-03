@@ -19,7 +19,9 @@
   (is (= (list (list 'FOR 'J '= 1 'TO 'L) (list 'READ 'S$) (list 'NEXT 'J)) (expandir-nexts (list (list 'FOR 'J '= 1 'TO 'L) (list 'READ 'S$) (list 'NEXT 'J)))))
   (is (= nil (expandir-nexts nil)))
   (is (= '((NEXT A)) (expandir-nexts (list (list 'NEXT 'A)))))
-  (is (= '((NEXT)) (expandir-nexts '((NEXT)))))
+  (is (= (list '(NEXT)) (expandir-nexts (list '(NEXT)))))
+  (is (= '((NEXT A) (NEXT B)) (expandir-nexts (list (list 'NEXT 'A (symbol ",") 'B)))))
+  (is (= '((FOR I = 1 TO 19 + SIN ( A ) * 20) (PRINT " " (symbol ";")) (NEXT I) (NEXT A)) (expandir-nexts '((FOR I = 1 TO 19 + SIN ( A ) * 20) (PRINT " "  (symbol ";")) (NEXT I , A)))))
   )
 
 (deftest test-dar-error
@@ -82,13 +84,18 @@
   (is (= (list '(10) '(15 (X = X + 1)) (list 20 (list 'NEXT 'I (symbol ",") 'J))) (buscar-lineas-restantes [(list '(10 (PRINT X) (PRINT Y)) '(15 (X = X + 1)) (list 20 (list 'NEXT 'I (symbol ",") 'J))) [10 0] [] [] [] 0 {}])))
   (is (= (list '(15 (X = X + 1)) (list 20 (list 'NEXT 'I (symbol ",") 'J))) (buscar-lineas-restantes [(list '(10 (PRINT X) (PRINT Y)) '(15 (X = X + 1)) (list 20 (list 'NEXT 'I (symbol ",") 'J))) [15 1] [] [] [] 0 {}])))
   (is (= (list '(15) (list 20 (list 'NEXT 'I (symbol ",") 'J))) (buscar-lineas-restantes [(list '(10 (PRINT X) (PRINT Y)) '(15 (X = X + 1)) (list 20 (list 'NEXT 'I (symbol ",") 'J))) [15 0] [] [] [] 0 {}])))
-  (is (= (list (list 20 (list 'NEXT 'I (symbol ",") 'J))) (buscar-lineas-restantes [(list '(10 (PRINT X) (PRINT Y)) '(15 (X = X + 1)) (list 20 (list 'NEXT 'I (symbol ",") 'J))) [20 3] [] [] [] 0 {}])))
-  (is (= (list (list 20 (list 'NEXT 'I (symbol ",") 'J))) (buscar-lineas-restantes [(list '(10 (PRINT X) (PRINT Y)) '(15 (X = X + 1)) (list 20 (list 'NEXT 'I (symbol ",") 'J))) [20 2] [] [] [] 0 {}])))
+  (is (= (list '(20 (NEXT I) (NEXT J))) (buscar-lineas-restantes [(list '(10 (PRINT X) (PRINT Y)) '(15 (X = X + 1)) (list 20 (list 'NEXT 'I (symbol ",") 'J))) [20 3] [] [] [] 0 {}])))
+  (is (= (list '(20 (NEXT I) (NEXT J))) (buscar-lineas-restantes [(list '(10 (PRINT X) (PRINT Y)) '(15 (X = X + 1)) (list 20 (list 'NEXT 'I (symbol ",") 'J))) [20 2] [] [] [] 0 {}])))
   (is (= (list (list 20 (list 'NEXT 'J))) (buscar-lineas-restantes [(list '(10 (PRINT X) (PRINT Y)) '(15 (X = X + 1)) (list 20 (list 'NEXT 'I (symbol ",") 'J))) [20 1] [] [] [] 0 {}])))
   (is (= (list (list 20)) (buscar-lineas-restantes [(list '(10 (PRINT X) (PRINT Y)) '(15 (X = X + 1)) (list 20 (list 'NEXT 'I (symbol ",") 'J))) [20 0] [] [] [] 0 {}])))
   (is (= (list (list 20)) (buscar-lineas-restantes [(list '(10 (PRINT X) (PRINT Y)) '(15 (X = X + 1)) (list 20 (list 'NEXT 'I (symbol ",") 'J))) [20 -1] [] [] [] 0 {}])))
   (is (= nil (buscar-lineas-restantes [(list '(10 (PRINT X) (PRINT Y)) '(15 (X = X + 1)) (list 20 (list 'NEXT 'I (symbol ",") 'J))) [25 0] [] [] [] 0 {}])))
+  (is (= (list '(20 (NEXT I) (NEXT J))) (buscar-lineas-restantes [(list '(10 (PRINT X) (PRINT Y)) '(12 (PRINT X)) '(15 (X = X + 1)) (list 20 (list 'NEXT 'I (symbol ",") 'J))) [20 3] [] [] [] 0 {}])))
+  (is (= (list '(160 (FOR I = 1 TO 19 + SIN ( A ) * 20) (PRINT " " (symbol ";")) (NEXT I) (NEXT A)) '(170 (PRINT "*") (A = 8 * ATN ( 1 ))) '(180 (PRINT INT ( A * 100 ) / 100 , "   " (symbol ";") INT ( SIN ( A ) * 100000 ) / 100000)) '(190 (FOR I = 1 TO 19) (PRINT " " (symbol ";")) (NEXT I) (PRINT "*"))) (buscar-lineas-restantes [(list '(100 (PRINT X , SIN(X))) '(110 (PRINT "---", "------")) '(120 (FOR I = 1 TO 19) (PRINT " " (symbol ";")) (NEXT I)) '(130 (FOR A = 0 TO 8 * ATN ( 1 ) STEP 0.1)) '(140 (PRINT *)) '(150 (PRINT INT ( A * 100 ) / 100 , " " (symbol ";") INT ( SIN ( A ) * 100000 ) / 100000)) '(160 (FOR I = 1 TO 19 + SIN ( A ) * 20) (PRINT " "  (symbol ";")) (NEXT I , A)) '(170 (PRINT "*") (A = 8 * ATN ( 1 ))) '(180 (PRINT INT ( A * 100 ) / 100 , "   " (symbol ";") INT ( SIN ( A ) * 100000 ) / 100000)) '(190 (FOR I = 1 TO 19) (PRINT " " (symbol ";")) (NEXT I) (PRINT "*"))) [160 4] [] [] [] 0 {}])))
+  (is (= (list '(160 (PRINT " " (symbol ";")) (NEXT I) (NEXT A)) '(170 (PRINT "*") (A = 8 * ATN ( 1 ))) '(180 (PRINT INT ( A * 100 ) / 100 , "   " (symbol ";") INT ( SIN ( A ) * 100000 ) / 100000)) '(190 (FOR I = 1 TO 19) (PRINT " " (symbol ";")) (NEXT I) (PRINT "*"))) (buscar-lineas-restantes [(list '(100 (PRINT X , SIN(X))) '(110 (PRINT "---", "------")) '(120 (FOR I = 1 TO 19) (PRINT " " (symbol ";")) (NEXT I)) '(130 (FOR A = 0 TO 8 * ATN ( 1 ) STEP 0.1)) '(140 (PRINT *)) '(150 (PRINT INT ( A * 100 ) / 100 , " " (symbol ";") INT ( SIN ( A ) * 100000 ) / 100000)) '(160 (FOR I = 1 TO 19 + SIN ( A ) * 20) (PRINT " "  (symbol ";")) (NEXT I , A)) '(170 (PRINT "*") (A = 8 * ATN ( 1 ))) '(180 (PRINT INT ( A * 100 ) / 100 , "   " (symbol ";") INT ( SIN ( A ) * 100000 ) / 100000)) '(190 (FOR I = 1 TO 19) (PRINT " " (symbol ";")) (NEXT I) (PRINT "*"))) [160 3] [] [] [] 0 {}])))
+  (is (= (list '(160 (NEXT I) (NEXT A)) '(170 (PRINT "*") (A = 8 * ATN ( 1 ))) '(180 (PRINT INT ( A * 100 ) / 100 , "   " (symbol ";") INT ( SIN ( A ) * 100000 ) / 100000)) '(190 (FOR I = 1 TO 19) (PRINT " " (symbol ";")) (NEXT I) (PRINT "*"))) (buscar-lineas-restantes [(list '(100 (PRINT X , SIN(X))) '(110 (PRINT "---", "------")) '(120 (FOR I = 1 TO 19) (PRINT " " (symbol ";")) (NEXT I)) '(130 (FOR A = 0 TO 8 * ATN ( 1 ) STEP 0.1)) '(140 (PRINT *)) '(150 (PRINT INT ( A * 100 ) / 100 , " " (symbol ";") INT ( SIN ( A ) * 100000 ) / 100000)) '(160 (FOR I = 1 TO 19 + SIN ( A ) * 20) (PRINT " "  (symbol ";")) (NEXT I , A)) '(170 (PRINT "*") (A = 8 * ATN ( 1 ))) '(180 (PRINT INT ( A * 100 ) / 100 , "   " (symbol ";") INT ( SIN ( A ) * 100000 ) / 100000)) '(190 (FOR I = 1 TO 19) (PRINT " " (symbol ";")) (NEXT I) (PRINT "*"))) [160 2] [] [] [] 0 {}])))
   )
+
 
 (deftest test-continuar-linea
   (is (= [nil [(list '(10 (PRINT X)) '(15 (X = X + 1)) (list 20 (list 'NEXT 'I (symbol ",") 'J))) [20 3] [] [] [] 0 {}]] (continuar-linea [(list '(10 (PRINT X)) '(15 (X = X + 1)) (list 20 (list 'NEXT 'I (symbol ",") 'J))) [20 3] [] [] [] 0 {}])))
